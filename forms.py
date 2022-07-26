@@ -6,7 +6,8 @@ from wtforms.fields import StringField
 from wtforms.widgets import TextArea
 
 ##WTForm
-class CreatePostForm(FlaskForm):
+class WritePostForm(FlaskForm):
+    title = StringField("Title", validators=[DataRequired()])
     body = CKEditorField("Post", validators=[DataRequired()])
     submit = SubmitField("Submit")
 

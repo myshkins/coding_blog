@@ -27,16 +27,15 @@
           </header>
 
           <main>
-            <h5 class="border-bottom">Recent Posts</h5>
+            <h5 class="border-bottom mb-5">Recent Posts</h5>
             <ul class="list-unstyled">
-              <li>
-                <p>I made this blog and I hope you think it's cool. It's all about coding. I think coding is great. It's lots of fun.</p>
-              </li>  
-              <hr class="col-6 col-md-6 mb-5">
-              <li>
-                <p>Here's another post that doesn't say anything, just wanted to see what the posts look like next to each other.</p>
-              </li>          
-            <hr class="col-6 col-md-6 mb-5">
+              {% for blurb in blurbs_and_titles %}
+              <a href=# class="text-dark text-decoration-none">
+                <h6 class="mt-3">{{blurb[0]}}</h6>
+                <p>{{blurb[1]|safe}}</p>
+              </a>
+            <hr class="col-10 col-md-10 mb-5">
+              {% endfor %}
 
           </main>
           <footer class="my-5 text-muted border-top">
@@ -54,7 +53,9 @@
             <ul class="list-unstyled">
               <li class="my-2">
                 <ul class="list-unstyled ps-3">
-                  <li><a class="d-inline-flex align-items-center rounded text-muted text-decoration-none" href="#">Making this blog</a></li>
+                  {% for title in blurbs_and_titles %}
+                  <li><a class="d-inline-flex align-items-center rounded text-muted text-decoration-none" href="#">{{title[0]}}</a></li>
+                  {% endfor %}
                 </ul>
               </li>
             </ul>

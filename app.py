@@ -1,13 +1,14 @@
 from flask import Flask, render_template, redirect, url_for, flash, abort
 from flask_bootstrap import Bootstrap
-from datetime import date
+from flask_ckeditor import CKEditor
+from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship
 from flask_login import UserMixin, login_user, LoginManager, login_required, current_user, logout_user
 from http import HTTPStatus
 from functools import wraps
-from forms import UserForm, LoginForm
+from forms import UserForm, LoginForm, WritePostForm
 
 
 app = Flask(__name__)
@@ -15,6 +16,7 @@ app.config['SECRET_KEY'] = "1851339de0a3dc2da7fdefe7a2ff6caaed504caf767073cb3588
 login_manager = LoginManager()
 login_manager.init_app(app)
 Bootstrap(app)
+ckeditor = CKEditor(app)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///coding_blog.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -32,6 +34,7 @@ class User(UserMixin, db.Model):
 class Post(db.Model):
     __tablename__ = "post"
     id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(250), nullable=False)
     author = db.Column(db.String(250), nullable=False)
     date = db.Column(db.String(250), nullable=False)
     body = db.Column(db.Text, nullable=False)
@@ -49,7 +52,7 @@ class Comment(db.Model):
     user = relationship("User", back_populates="comment")
     post = relationship("Post", back_populates="comment")
 
-#db.create_all()
+db.create_all()
 
 
 
@@ -61,17 +64,34 @@ def load_user(user_id):
 @app.route('/', methods=["POST", "GET"])
 def home():
     posts = Post.query.all()
-    return render_template("index.html", posts=posts)
+    bodies = [post.body for post in posts]
+    part_blurbs = [para.split('<p>')[2] for para in bodies]                     #use split() to get the first paragraph of blog body
+    blurbs = ["<p>" + para.split('</p>')[0] + "</p>" for para in part_blurbs]   # it's not pretty, sorry future self. 
+    blurbs_and_titles = [(posts[blurbs.index(blurb)].title, blurb) for blurb in blurbs]     
+    print(blurbs_and_titles)
+    return render_template("index.html", posts=posts, blurbs_and_titles=blurbs_and_titles)
 
 
-@app.route('/post', methods=["POST", "GET"])
+@app.route('/write-post', methods=["POST", "GET"])
 @login_required
-def post():
-    return render_template("create-post.html")
+def write_post():
+    form = WritePostForm()
+    if form.validate_on_submit():
+        post = Post(
+            body=form.body.data,
+            title=form.title.data,
+            author=current_user.name,
+            author_id=current_user.id,
+            date=datetime.now().strftime("%B, %d, %Y")
+        )
+        db.session.add(post)
+        db.session.commit()
+        return redirect(url_for('home'))
+    return render_template("create-post.html", form=form)
 
 
-@app.route('/', methods=["POST", "GET"])
-def entry():
+@app.route('/login', methods=["POST", "GET"])
+def login():
     form = LoginForm()
     if form.validate_on_submit():
         name = form.name.data
@@ -86,13 +106,15 @@ def entry():
         else:
             login_user(user)
             return redirect(url_for('home'))
-    return render_template("entry.html", form=form)
+    return render_template("login.html", form=form)
 
 
 @app.route('/logout')
 def logout():
     logout_user()
     return redirect(url_for('home'))
+
+
 
 
 
