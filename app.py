@@ -7,6 +7,7 @@ from sqlalchemy.orm import relationship
 from flask_login import UserMixin, login_user, LoginManager, login_required, current_user, logout_user
 from http import HTTPStatus
 from functools import wraps
+from forms import UserForm, LoginForm
 
 
 app = Flask(__name__)
@@ -48,8 +49,7 @@ class Comment(db.Model):
     user = relationship("User", back_populates="comment")
     post = relationship("Post", back_populates="comment")
 
-db.create_all()
-
+#db.create_all()
 
 
 
@@ -68,4 +68,47 @@ def home():
 @login_required
 def post():
     return render_template("create-post.html")
+
+
+@app.route('/', methods=["POST", "GET"])
+def entry():
+    form = LoginForm()
+    if form.validate_on_submit():
+        name = form.name.data
+        password = form.password.data
+        user = User.query.filter_by(name=name).first()
+        if not user:
+            flash("No account exists with that name.")
+            return redirect(url_for('login'))
+        if not check_password_hash(user.password, password):
+            flash("Incorrect password.")
+            return redirect(url_for('login'))
+        else:
+            login_user(user)
+            return redirect(url_for('home'))
+    return render_template("entry.html", form=form)
+
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('home'))
+
+
+
+
+# @app.route('/register', methods=["POST", "GET"])
+# def register():
+#     form = UserForm()
+#     if form.validate_on_submit():
+#         user = User()
+#         user.name = form.name.data
+#         user.password = generate_password_hash(form.password.data, method="pbkdf2:sha256", salt_length=8)
+#         db.session.add(user)
+#         db.session.commit()
+#         login_user(user)
+#         flash(f"Welcome, {user.name}")
+#         return render_template("register.html", registered=current_user.is_active)
+#     return render_template("register.html", form=form, registered=current_user.is_active)
+
 
